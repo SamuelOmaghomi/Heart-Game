@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<title>Play with React</title>
+<script type="application/javascript" src="https://unpkg.com/react@16.0.0/umd/react.production.min.js"></script>
+<script type="application/javascript" src="https://unpkg.com/react-dom@16.0.0/umd/react-dom.production.min.js"></script>
+<script type="application/javascript" src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script>
+<style>
+.square {
+  position: fixed;
+  height: 50px;
+  width: 50px;
+  background-color: #FF0000;
+}
+</style>
+</head>
+
+<div id="root"></div>
+
+<script type="text/babel">
+// Obtain the root
+const rootElement = document.getElementById('root');
+// Create a ES6 class component
+class HeartList extends React.Component {
+// Use the render function to return JSX component
+
+
+constructor(props) {
+    super(props);
+    this.handleChange = this.handleChange.bind(this);
+    this.handleSubmit = this.handleSubmit.bind(this);
+    this.handlePause = this.handlePause.bind(this); // bind handlePause to this context
+    this.state = { count: "", heartsstring: "", sprites: [], isPaused : false};
+}
+callAPI() {
+//insert code
+    fetch("http://localhost:8080/heartbeat-samuel/resources/cst8218.omag0003.heartbeat.entity.heart",{
+    headers: {'Accept': 'application/json', 'Authorization': 'Basic ' + btoa('Samuel' + ":"+ 'admin')}})
+    .then(res => res.json())
+    .then(resjson => this.setState({sprites: resjson}));
+}
+componentDidMount() {
+this.callAPI();
+this.interval = setInterval(this.tick,this.state.delay);
+}
+
+componentWillUnmount() {
+clearInterval(this.interval);
+}
+
+tick = () => {
+    if(this.state.isPaused){
+        return {}; // tick = () => {}; //don't refresh
+    }
+    this.callAPI();//keep refreshing
+}; 
+
+handlePause(){
+  this.setState({isPaused : !this.state.isPaused});
+};
+
+render() {
+const valuesArray = this.state.sprites;
+return (
+<div className="heart-list">
+
+<h1>Heart List {this.props.name}</h1>
+<ul>
+<li>count: {this.state.count}</li>
+<li>array size: {valuesArray.length} </li>
+<button type="button" onClick={this.handlePause}>
+  {this.state.isPaused ? "Resume" : "Pause"}
+</button>
+</ul>
+   <form onSubmit={this.handleSubmit}>
+        <table>
+            <tr><th>id</th><th>x</th><th>y</th><th>Size</th><th>ContractedSize</th><th>BeatCount</th></tr>
+           {this.state.sprites.map((item,key)=>{
+            return (
+            <tr>
+            <td><input type="text" name={item.id} value={item.id}
+            /></td>
+            
+            <td><input type="text" name={item.id} value={item.x}
+            onChange={(e)=>this.handleChange(e,"x",key)} /> </td>
+            <td><input type="text" name={item.id} value={item.y}
+            onChange={(e)=>this.handleChange(e,"y",key)} /> </td>
+            <td><input type="text" name={item.id} value={item.size}
+            onChange={(e)=>this.handleChange(e,"size",key)} /> </td>
+            <td><input type="text" name={item.id} value={item.contractedSize}
+            onChange={(e)=>this.handleChange(e,"contractedSize",key)} /> </td>
+            <td><input type="text" name={item.id} value={item.beatCount}
+            onChange={(e)=>this.handleChange(e,"beatCount",key)} /> </td>
+            </tr>
+            
+            );
+            })}
+      
+        </table>
+        <input type="submit" value="Submit" />
+    </form>
+    <canvas
+        ref="canvas"
+        width={1000}
+        height={500}
+      />
+</div>
+
+);
+}
+
+componentDidUpdate(prevProps, prevState) {
+    if (prevState.delay !== this.state.delay) {
+        clearInterval(this.interval);
+        this.interval = setInterval(this.tick, this.state.delay);
+    }
+    const ctx = this.refs.canvas.getContext("2d");
+    ctx.clearRect(0, 0, this.refs.canvas.width, this.refs.canvas.height);
+    this.state.sprites.forEach(item =>
+    {
+        ctx.fillStyle = "#FF0000";
+        ctx.fillRect(item.x, item.y, item.size, item.size);
+    });
+}
+
+handleChange(event,field,index) {
+    var sprites = this.state.sprites.map((item,key)=>{
+    if (key === index) { // this one changed
+        return Object.assign({},item,{[field]: event.target.value}); // make a copy ofthe item to change
+    } else {
+        return item; // this one didn't change
+    }
+        });
+    this.setState({sprites: sprites});
+}
+
+handleSubmit(event) {
+    this.state.sprites.map(item=>{
+fetch("http://localhost:8080/heartbeat-samuel/resources/cst8218.omag0003.heartbeat.entity.heart/"+item.id,{
+    method: 'PUT',
+    body: JSON.stringify(item),
+    headers: {'Content-type': 'application/json', 'Authorization': 'Basic ' + btoa('ApiUser' + ":"+ 'admin')}})
+    .then(res => res.text());
+});
+event.preventDefault();
+}
+
+}
+
+// Create a function to wrap up your component
+function App(){
+    return(
+        <div>
+            <HeartList name="Using React!"/>
+        </div>
+    
+);
+}
+// Use the ReactDOM.render to show your component on the browser
+ReactDOM.render(
+<App />,
+rootElement
+);
+</script>
+
+
+</html>
